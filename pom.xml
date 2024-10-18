@@ -77,19 +77,21 @@
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
 			<artifactId>jjwt-api</artifactId>
-			<version>0.12.6</version>
-		</dependency>
-		<!-- https://mvnrepository.com/artifact/io.jsonwebtoken/jjwt-api -->
-		<dependency>
-			<groupId>io.jsonwebtoken</groupId>
-			<artifactId>jjwt-jackson</artifactId>
-			<version>0.12.6</version>
+			<version>0.11.5</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/io.jsonwebtoken/jjwt-api -->
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
 			<artifactId>jjwt-impl</artifactId>
-			<version>0.12.6</version>
+			<version>0.11.5</version>
+			<scope>runtime</scope>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/io.jsonwebtoken/jjwt-api -->
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-jackson</artifactId>
+			<version>0.11.5</version>
+			<scope>runtime</scope>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/com.konghq/unirest-java-core -->
 		<dependency>
@@ -108,6 +110,7 @@
 			<artifactId>cloudinary-http44</artifactId>
 			<version>1.39.0</version>
 		</dependency>
+
 	</dependencies>
 
 	<build>

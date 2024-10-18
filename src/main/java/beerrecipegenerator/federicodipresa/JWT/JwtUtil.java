@@ -1,6 +1,9 @@
 package beerrecipegenerator.federicodipresa.JWT;
 
-import lombok.Value;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import org.springframework.beans.factory.annotation.Value;  // Cambiato da lombok.Value
 import org.springframework.stereotype.Component;
 
 import java.util.Date;
@@ -28,4 +31,3 @@ public class JwtUtil {
         return extractAllClaims(token).getSubject();
     }
 }
-
