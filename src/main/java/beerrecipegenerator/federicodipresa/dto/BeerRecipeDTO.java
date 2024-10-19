@@ -8,6 +8,12 @@ public class BeerRecipeDTO {
     private List<String> hops;
     private List<String> yeasts;
     private double estimatedAlcohol;
+    private String userFirstName;
+    private String userLastName;
+    private String userEmail;
+    private List<String> beerRecipes;
+
+    // Getters e Setters
 
     public String getName() {
         return name;
@@ -47,6 +53,38 @@ public class BeerRecipeDTO {
 
     public void setEstimatedAlcohol(double estimatedAlcohol) {
         this.estimatedAlcohol = estimatedAlcohol;
+    }
+
+    public String getUserFirstName() {
+        return userFirstName;
+    }
+
+    public void setUserFirstName(String userFirstName) {
+        this.userFirstName = userFirstName;
+    }
+
+    public String getUserLastName() {
+        return userLastName;
+    }
+
+    public void setUserLastName(String userLastName) {
+        this.userLastName = userLastName;
+    }
+
+    public String getUserEmail() {
+        return userEmail;
+    }
+
+    public void setUserEmail(String userEmail) {
+        this.userEmail = userEmail;
+    }
+
+    public List<String> getBeerRecipes() {
+        return beerRecipes;
+    }
+
+    public void setBeerRecipes(List<String> beerRecipes) {
+        this.beerRecipes = beerRecipes;
     }
 }
 
