@@ -1,177 +1,139 @@
 package beerrecipegenerator.federicodipresa.controllers;
 
 import beerrecipegenerator.federicodipresa.dto.BeerRecipeDTO;
-import beerrecipegenerator.federicodipresa.entities.BeerRecipe;
-import beerrecipegenerator.federicodipresa.entities.Hop;
-import beerrecipegenerator.federicodipresa.entities.Malt;
-import beerrecipegenerator.federicodipresa.entities.Yeast;
-import beerrecipegenerator.federicodipresa.entities.User;
+import beerrecipegenerator.federicodipresa.entities.*;
 import beerrecipegenerator.federicodipresa.services.BeerRecipeService;
 import beerrecipegenerator.federicodipresa.services.UserService;
+import beerrecipegenerator.federicodipresa.repository.MaltRepository;
+import beerrecipegenerator.federicodipresa.repository.HopRepository;
+import beerrecipegenerator.federicodipresa.repository.YeastRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.validation.Valid;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/recipes")
 public class BeerRecipeController {
 
-    @Autowired
-    private BeerRecipeService beerRecipeService;
+    private final BeerRecipeService beerRecipeService;
+    private final UserService userService;
+    private final MaltRepository maltRepository;
+    private final HopRepository hopRepository;
+    private final YeastRepository yeastRepository;
 
     @Autowired
-    private UserService userService;
+    public BeerRecipeController(BeerRecipeService beerRecipeService,
+                                UserService userService,
+                                MaltRepository maltRepository,
+                                HopRepository hopRepository,
+                                YeastRepository yeastRepository) {
+        this.beerRecipeService = beerRecipeService;
+        this.userService = userService;
+        this.maltRepository = maltRepository;
+        this.hopRepository = hopRepository;
+        this.yeastRepository = yeastRepository;
+    }
 
-    // Crea una ricetta e la associa a un utente
+    private BeerRecipeDTO convertToDTO(BeerRecipe recipe) {
+        BeerRecipeDTO dto = new BeerRecipeDTO();
+        dto.setId(recipe.getId());
+        dto.setName(recipe.getName());
+        dto.setEstimatedAlcohol(recipe.getEstimatedAlcohol());
+        dto.setUserEmail(recipe.getUser().getEmail());
+
+        dto.setMalts(recipe.getMalts().stream().map(malt -> malt.getId().toString()).collect(Collectors.toList()));
+        dto.setHops(recipe.getHops().stream().map(hop -> hop.getId().toString()).collect(Collectors.toList()));
+        dto.setYeasts(recipe.getYeasts().stream().map(yeast -> yeast.getId().toString()).collect(Collectors.toList()));
+
+        return dto;
+    }
+
+    private List<Malt> getMaltsFromIds(List<String> maltIds) {
+        return maltIds.stream()
+                .map(id -> maltRepository.findById(Long.parseLong(id))
+                        .orElseThrow(() -> new EntityNotFoundException("Malto non trovato con ID: " + id)))
+                .collect(Collectors.toList());
+    }
+
+    private List<Hop> getHopsFromIds(List<String> hopIds) {
+        return hopIds.stream()
+                .map(id -> hopRepository.findById(Long.parseLong(id))
+                        .orElseThrow(() -> new EntityNotFoundException("Luppolo non trovato con ID: " + id)))
+                .collect(Collectors.toList());
+    }
+
+    private List<Yeast> getYeastsFromIds(List<String> yeastIds) {
+        return yeastIds.stream()
+                .map(id -> yeastRepository.findById(Long.parseLong(id))
+                        .orElseThrow(() -> new EntityNotFoundException("Lievito non trovato con ID: " + id)))
+                .collect(Collectors.toList());
+    }
+
     @PostMapping
-    public ResponseEntity<BeerRecipeDTO> createRecipe(@RequestBody BeerRecipeDTO beerRecipeDTO, @RequestParam String email) {
-        // Trova l'utente tramite email
-        User user = userService.findByEmail(email);
-
-
-        if (user == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
-        }
-
-        // Crea la ricetta
-        BeerRecipe beerRecipe = new BeerRecipe();
-        beerRecipe.setName(beerRecipeDTO.getName());
-
-        // Associa gli ingredienti (malti, luppoli, lieviti)
-        List<Malt> malts = new ArrayList<>();
-        for (String maltId : beerRecipeDTO.getMalts()) {
-            Malt malt = new Malt();
-            try {
-                malt.setId(Long.parseLong(maltId)); // Assicurati che l'ID sia valido
-                malts.add(malt);
-            } catch (NumberFormatException e) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null); // Se l'ID non è valido
+    @Transactional
+    public ResponseEntity<?> createRecipe(@RequestBody @Valid BeerRecipeDTO beerRecipeDTO) {
+        try {
+            User user = userService.findByEmail(beerRecipeDTO.getUserEmail());
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body("Utente non trovato con email: " + beerRecipeDTO.getUserEmail());
             }
+
+            BeerRecipe beerRecipe = new BeerRecipe();
+            beerRecipe.setName(beerRecipeDTO.getName());
+            beerRecipe.setEstimatedAlcohol(beerRecipeDTO.getEstimatedAlcohol());
+            beerRecipe.setUser(user);
+            beerRecipe.setMalts(getMaltsFromIds(beerRecipeDTO.getMalts()));
+            beerRecipe.setHops(getHopsFromIds(beerRecipeDTO.getHops()));
+            beerRecipe.setYeasts(getYeastsFromIds(beerRecipeDTO.getYeasts()));
+
+            BeerRecipe savedRecipe = beerRecipeService.createRecipe(beerRecipe);
+            return ResponseEntity.status(HttpStatus.CREATED).body(convertToDTO(savedRecipe));
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (NumberFormatException e) {
+            return ResponseEntity.badRequest().body("ID non valido fornito per malto, luppolo o lievito");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Errore durante la creazione della ricetta: " + e.getMessage());
         }
-        beerRecipe.setMalts(malts);
-
-        List<Hop> hops = new ArrayList<>();
-        for (String hopId : beerRecipeDTO.getHops()) {
-            Hop hop = new Hop();
-            try {
-                hop.setId(Long.parseLong(hopId)); // Assicurati che l'ID sia valido
-                hops.add(hop);
-            } catch (NumberFormatException e) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null); // Se l'ID non è valido
-            }
-        }
-        beerRecipe.setHops(hops);
-
-        List<Yeast> yeasts = new ArrayList<>();
-        for (String yeastId : beerRecipeDTO.getYeasts()) {
-            Yeast yeast = new Yeast();
-            try {
-                yeast.setId(Long.parseLong(yeastId)); // Assicurati che l'ID sia valido
-                yeasts.add(yeast);
-            } catch (NumberFormatException e) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null); // Se l'ID non è valido
-            }
-        }
-        beerRecipe.setYeasts(yeasts);
-
-        beerRecipe.setEstimatedAlcohol(beerRecipeDTO.getEstimatedAlcohol());
-
-        // Associa la ricetta all'utente
-        beerRecipe.setUser(user);
-
-        // Salva la ricetta
-        BeerRecipe savedRecipe = beerRecipeService.createRecipe(beerRecipe);
-
-        // Mappa la ricetta salvata nel DTO di risposta
-        BeerRecipeDTO responseDTO = new BeerRecipeDTO();
-        responseDTO.setName(savedRecipe.getName());
-        responseDTO.setMalts(beerRecipeDTO.getMalts());
-        responseDTO.setHops(beerRecipeDTO.getHops());
-        responseDTO.setYeasts(beerRecipeDTO.getYeasts());
-        responseDTO.setEstimatedAlcohol(savedRecipe.getEstimatedAlcohol());
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(responseDTO);
     }
 
-    // Ottieni una ricetta per ID
     @GetMapping("/{id}")
-    public ResponseEntity<BeerRecipeDTO> getRecipe(@PathVariable Long id) {
-        BeerRecipe beerRecipe = beerRecipeService.getRecipeById(id);
-
-        if (beerRecipe == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+    public ResponseEntity<?> getRecipe(@PathVariable Long id) {
+        try {
+            BeerRecipe recipe = beerRecipeService.getRecipeById(id);
+            return ResponseEntity.ok(convertToDTO(recipe));
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Ricetta non trovata con ID: " + id);
         }
-
-        BeerRecipeDTO beerRecipeDTO = new BeerRecipeDTO();
-        beerRecipeDTO.setName(beerRecipe.getName());
-
-        List<String> maltIds = new ArrayList<>();
-        for (Malt malt : beerRecipe.getMalts()) {
-            maltIds.add(malt.getId().toString());
-        }
-        beerRecipeDTO.setMalts(maltIds);
-
-        List<String> hopIds = new ArrayList<>();
-        for (Hop hop : beerRecipe.getHops()) {
-            hopIds.add(hop.getId().toString());
-        }
-        beerRecipeDTO.setHops(hopIds);
-
-        List<String> yeastIds = new ArrayList<>();
-        for (Yeast yeast : beerRecipe.getYeasts()) {
-            yeastIds.add(yeast.getId().toString());
-        }
-        beerRecipeDTO.setYeasts(yeastIds);
-
-        beerRecipeDTO.setEstimatedAlcohol(beerRecipe.getEstimatedAlcohol());
-
-        return ResponseEntity.ok(beerRecipeDTO);
     }
 
-    // Ottieni tutte le ricette di un utente
     @GetMapping("/user/{email}")
-    public ResponseEntity<List<BeerRecipeDTO>> getAllRecipesByUser(@PathVariable String email) {
-        User user = userService.findByEmail(email);
-        if (user == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
-        }
-
-        List<BeerRecipe> beerRecipes = beerRecipeService.getAllRecipesByUser(user);
-        if (beerRecipes.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NO_CONTENT).body(null);  // Se non ci sono ricette
-        }
-
-        List<BeerRecipeDTO> beerRecipeDTOs = new ArrayList<>();
-        for (BeerRecipe beerRecipe : beerRecipes) {
-            BeerRecipeDTO beerRecipeDTO = new BeerRecipeDTO();
-            beerRecipeDTO.setName(beerRecipe.getName());
-
-            List<String> maltIds = new ArrayList<>();
-            for (Malt malt : beerRecipe.getMalts()) {
-                maltIds.add(malt.getId().toString());
+    public ResponseEntity<?> getAllRecipesByUser(@PathVariable String email) {
+        try {
+            User user = userService.findByEmail(email);
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Utente non trovato con email: " + email);
             }
-            beerRecipeDTO.setMalts(maltIds);
 
-            List<String> hopIds = new ArrayList<>();
-            for (Hop hop : beerRecipe.getHops()) {
-                hopIds.add(hop.getId().toString());
+            List<BeerRecipe> recipes = beerRecipeService.getAllRecipesByUser(user);
+            if (recipes.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NO_CONTENT).body("Nessuna ricetta trovata per l'utente");
             }
-            beerRecipeDTO.setHops(hopIds);
 
-            List<String> yeastIds = new ArrayList<>();
-            for (Yeast yeast : beerRecipe.getYeasts()) {
-                yeastIds.add(yeast.getId().toString());
-            }
-            beerRecipeDTO.setYeasts(yeastIds);
-
-            beerRecipeDTO.setEstimatedAlcohol(beerRecipe.getEstimatedAlcohol());
-            beerRecipeDTOs.add(beerRecipeDTO);
+            List<BeerRecipeDTO> dtos = recipes.stream().map(this::convertToDTO).collect(Collectors.toList());
+            return ResponseEntity.ok(dtos);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Errore durante il recupero delle ricette: " + e.getMessage());
         }
-
-        return ResponseEntity.ok(beerRecipeDTOs);
     }
 }
