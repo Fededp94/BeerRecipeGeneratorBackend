@@ -64,7 +64,7 @@ public class UserController {
 
                 // Crea la risposta
                 Map<String, Object> response = new HashMap<>();
-                user.setPassword(null);  // Rimuovi la password per sicurezza
+                user.setPassword(null);
                 response.put("user", user);
                 response.put("token", token);
 

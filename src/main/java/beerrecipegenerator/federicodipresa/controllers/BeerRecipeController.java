@@ -42,7 +42,7 @@ public class BeerRecipeController {
             throw e;
         } catch (Exception e) {
             throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST, "Error creating recipe: " + e.getMessage());
+                    HttpStatus.BAD_REQUEST, "Errore creazione ricetta: " + e.getMessage());
         }
     }
 
@@ -55,7 +55,7 @@ public class BeerRecipeController {
 
             User user = userService.findByEmail(userEmail);
             if (user == null) {
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Utente non trovato");
             }
 
             List<BeerRecipe> recipes = beerRecipeService.getAllRecipesByUser(user);
@@ -66,7 +66,7 @@ public class BeerRecipeController {
             return ResponseEntity.ok(recipeDTOs);
         } catch (Exception e) {
             throw new ResponseStatusException(
-                    HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving recipes");
+                    HttpStatus.INTERNAL_SERVER_ERROR, "Errore ricetta");
         }
     }
 
@@ -82,7 +82,7 @@ public class BeerRecipeController {
 
             if (!recipe.getUser().getEmail().equals(userEmail)) {
                 throw new ResponseStatusException(
-                        HttpStatus.FORBIDDEN, "You don't have access to this recipe");
+                        HttpStatus.FORBIDDEN, "Non hai l'accesso a questa ricetta");
             }
 
             return ResponseEntity.ok(convertToDTO(recipe));
@@ -90,7 +90,7 @@ public class BeerRecipeController {
             throw e;
         } catch (Exception e) {
             throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND, "Recipe not found with id: " + id);
+                    HttpStatus.NOT_FOUND, "Ricetta non trovata con questo id: " + id);
         }
     }
 
@@ -105,7 +105,7 @@ public class BeerRecipeController {
             BeerRecipe recipe = beerRecipeService.getRecipeById(id);
             if (!recipe.getUser().getEmail().equals(userEmail)) {
                 throw new ResponseStatusException(
-                        HttpStatus.FORBIDDEN, "You can't delete this recipe");
+                        HttpStatus.FORBIDDEN, "Non puoi cancellare questa ricetta");
             }
 
             beerRecipeService.deleteRecipe(id);
@@ -114,7 +114,7 @@ public class BeerRecipeController {
             throw e;
         } catch (Exception e) {
             throw new ResponseStatusException(
-                    HttpStatus.INTERNAL_SERVER_ERROR, "Error deleting recipe");
+                    HttpStatus.INTERNAL_SERVER_ERROR, "Errore cancellazione ricetta");
         }
     }
 
