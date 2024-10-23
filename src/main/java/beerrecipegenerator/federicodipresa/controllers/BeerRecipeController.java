@@ -120,6 +120,7 @@ public class BeerRecipeController {
 
     private BeerRecipeDTO convertToDTO(BeerRecipe recipe) {
         BeerRecipeDTO dto = new BeerRecipeDTO();
+        dto.setId(recipe.getId());
         dto.setName(recipe.getName());
         dto.setEstimatedAlcohol(recipe.getEstimatedAlcohol());
         dto.setUserEmail(recipe.getUser().getEmail());

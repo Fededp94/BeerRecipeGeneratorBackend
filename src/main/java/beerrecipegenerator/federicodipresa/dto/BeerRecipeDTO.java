@@ -9,6 +9,8 @@ import java.util.List;
 
 @Data
 public class BeerRecipeDTO {
+    private Long id;
+    
     @NotNull(message = "Il nome della ricetta è obbligatorio")
     @NotEmpty(message = "Il nome della ricetta non può essere vuoto")
     private String name;
@@ -33,7 +35,15 @@ public class BeerRecipeDTO {
     @NotEmpty(message = "L'email dell'utente non può essere vuota")
     private String userEmail;
 
-    // Getter e Setter
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
     public String getName() {
         return name;
     }
