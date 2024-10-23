@@ -10,7 +10,7 @@ import java.util.List;
 @Data
 public class BeerRecipeDTO {
     private Long id;
-    
+
     @NotNull(message = "Il nome della ricetta è obbligatorio")
     @NotEmpty(message = "Il nome della ricetta non può essere vuoto")
     private String name;
