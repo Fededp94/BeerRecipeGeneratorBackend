@@ -37,10 +37,22 @@ public class User {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<BeerRecipe> beerRecipes = new ArrayList<>();
 
-    // Metodi addBeerRecipe e removeBeerRecipe come prima
+
 
     public enum UserRole {
         USER, ADMIN
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public String getEmail() {
+        return email;
     }
 }
 

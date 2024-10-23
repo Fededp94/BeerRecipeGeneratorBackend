@@ -1,12 +1,15 @@
 package beerrecipegenerator.federicodipresa.controllers;
 
-
+import beerrecipegenerator.federicodipresa.JWT.JwtUtil;
 import beerrecipegenerator.federicodipresa.entities.User;
 import beerrecipegenerator.federicodipresa.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api")
@@ -15,26 +18,33 @@ public class UserController {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private JwtUtil jwtUtil;
+
+
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody User user) {
         System.out.println("Ricevuta richiesta di registrazione per: " + user.getEmail());
         try {
-            // Verifica se l'utente esiste già
             if (userService.findByEmail(user.getEmail()) != null) {
                 return ResponseEntity
                         .status(HttpStatus.CONFLICT)
                         .body("Un utente con questa email esiste già");
             }
 
-            // Salva il nuovo utente
             User savedUser = userService.saveUser(user);
-
-            // Per sicurezza, impostiamo la password a null prima di inviarla nella risposta
             savedUser.setPassword(null);
+
+
+            String token = jwtUtil.generateToken(savedUser.getEmail());
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("user", savedUser);
+            response.put("token", token);
 
             return ResponseEntity
                     .status(HttpStatus.CREATED)
-                    .body(savedUser);
+                    .body(response);
         } catch (Exception e) {
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -42,34 +52,64 @@ public class UserController {
         }
     }
 
-    // Endpoint per verificare se un utente esiste (utile per il login)
-    @GetMapping("/users/{email}")
-    public ResponseEntity<?> getUserByEmail(@PathVariable String email) {
-        User user = userService.findByEmail(email);
-        if (user != null) {
-            // Per sicurezza, impostiamo la password a null prima di inviarla nella risposta
-            user.setPassword(null);
-            return ResponseEntity.ok(user);
-        } else {
+
+    @PostMapping("/login")
+    public ResponseEntity<?> loginUser(@RequestBody User loginRequest) {
+        try {
+            User user = userService.findByEmail(loginRequest.getEmail());
+
+            if (user != null && user.getPassword().equals(loginRequest.getPassword())) {
+                // Genera il token JWT
+                String token = jwtUtil.generateToken(user.getEmail());
+
+                // Crea la risposta
+                Map<String, Object> response = new HashMap<>();
+                user.setPassword(null);  // Rimuovi la password per sicurezza
+                response.put("user", user);
+                response.put("token", token);
+
+                return ResponseEntity.ok(response);
+            } else {
+                return ResponseEntity
+                        .status(HttpStatus.UNAUTHORIZED)
+                        .body("Email o password non validi");
+            }
+        } catch (Exception e) {
             return ResponseEntity
-                    .status(HttpStatus.NOT_FOUND)
-                    .body("Utente non trovato");
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Errore durante il login: " + e.getMessage());
         }
     }
 
-    // Endpoint per il login (opzionale, se lo vuoi implementare)
-    @PostMapping("/login")
-    public ResponseEntity<?> loginUser(@RequestBody User loginRequest) {
-        User user = userService.findByEmail(loginRequest.getEmail());
+    @GetMapping("/users/{email}")
+    public ResponseEntity<?> getUserByEmail(
+            @PathVariable String email,
+            @RequestHeader("Authorization") String authHeader) {
+        try {
+            // Verifica il token JWT
+            String token = authHeader.substring(7);
+            String userEmail = jwtUtil.extractUsername(token);
 
-        if (user != null && user.getPassword().equals(loginRequest.getPassword())) {
-            // Per sicurezza, impostiamo la password a null prima di inviarla nella risposta
-            user.setPassword(null);
-            return ResponseEntity.ok(user);
-        } else {
+
+            if (!email.equals(userEmail)) {
+                return ResponseEntity
+                        .status(HttpStatus.FORBIDDEN)
+                        .body("Non sei autorizzato ad accedere a questi dati");
+            }
+
+            User user = userService.findByEmail(email);
+            if (user != null) {
+                user.setPassword(null);
+                return ResponseEntity.ok(user);
+            } else {
+                return ResponseEntity
+                        .status(HttpStatus.NOT_FOUND)
+                        .body("Utente non trovato");
+            }
+        } catch (Exception e) {
             return ResponseEntity
                     .status(HttpStatus.UNAUTHORIZED)
-                    .body("Email o password non validi");
+                    .body("Token non valido o scaduto");
         }
     }
 }

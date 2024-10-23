@@ -10,6 +10,7 @@ public interface BeerRecipeRepository extends JpaRepository<BeerRecipe, Long> {
 
 
     List<BeerRecipe> findByUser(User user);
+
 }
 
 

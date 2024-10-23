@@ -9,7 +9,7 @@ import java.util.Optional;
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
 
-    // Metodo per trovare un utente per email
+
     User findByEmail(String email);
 
 
