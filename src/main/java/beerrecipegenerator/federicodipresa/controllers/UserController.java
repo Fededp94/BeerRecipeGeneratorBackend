@@ -21,7 +21,6 @@ public class UserController {
     @Autowired
     private JwtUtil jwtUtil;
 
-
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody User user) {
         System.out.println("Ricevuta richiesta di registrazione per: " + user.getEmail());
@@ -33,13 +32,11 @@ public class UserController {
             }
 
             User savedUser = userService.saveUser(user);
-            savedUser.setPassword(null);
-
-
             String token = jwtUtil.generateToken(savedUser.getEmail());
 
+            // Modifica: invia solo email e token
             Map<String, Object> response = new HashMap<>();
-            response.put("user", savedUser);
+            response.put("email", savedUser.getEmail());
             response.put("token", token);
 
             return ResponseEntity
@@ -52,7 +49,6 @@ public class UserController {
         }
     }
 
-
     @PostMapping("/login")
     public ResponseEntity<?> loginUser(@RequestBody User loginRequest) {
         try {
@@ -62,10 +58,9 @@ public class UserController {
                 // Genera il token JWT
                 String token = jwtUtil.generateToken(user.getEmail());
 
-                // Crea la risposta
+                // Modifica: invia solo email e token
                 Map<String, Object> response = new HashMap<>();
-                user.setPassword(null);
-                response.put("user", user);
+                response.put("email", user.getEmail());
                 response.put("token", token);
 
                 return ResponseEntity.ok(response);
@@ -90,7 +85,6 @@ public class UserController {
             String token = authHeader.substring(7);
             String userEmail = jwtUtil.extractUsername(token);
 
-
             if (!email.equals(userEmail)) {
                 return ResponseEntity
                         .status(HttpStatus.FORBIDDEN)
@@ -100,7 +94,12 @@ public class UserController {
             User user = userService.findByEmail(email);
             if (user != null) {
                 user.setPassword(null);
-                return ResponseEntity.ok(user);
+
+                // Modifica: invia solo le informazioni necessarie
+                Map<String, Object> response = new HashMap<>();
+                response.put("email", user.getEmail());
+
+                return ResponseEntity.ok(response);
             } else {
                 return ResponseEntity
                         .status(HttpStatus.NOT_FOUND)

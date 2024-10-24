@@ -31,8 +31,7 @@ public class BeerRecipeDTO {
     @Min(value = 0, message = "Il grado alcolico non può essere negativo")
     private double estimatedAlcohol;
 
-    @NotNull(message = "L'email dell'utente è obbligatoria")
-    @NotEmpty(message = "L'email dell'utente non può essere vuota")
+
     private String userEmail;
 
 
